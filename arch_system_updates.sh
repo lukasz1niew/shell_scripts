@@ -31,3 +31,13 @@ fi
 # show disk space
 echo ""
 duf /
+echo ""
+
+# create failure file if anything failed
+if (( FAILED )); then
+    touch /tmp/updates.log
+    echo -e "${RED}One or more updates failed. /tmp/updates created.${NC}"
+else
+    echo -e "${GREEN}All updates completed successfully.${NC}"
+    rm -f /tmp/updates.log
+fi
