@@ -5,39 +5,66 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# track failures
+FAILED=0
+
+# temporary output logs
+PACMAN_LOG=$(mktemp)
+AUR_LOG=$(mktemp)
+
 # system update header
 echo ""
-echo -e "***********************************"
-echo -e "***   ARCHLINUX SYSTEM UPDATE   ***"
-echo -e "***********************************"
+echo "***********************************"
+echo "***   ARCHLINUX SYSTEM UPDATE   ***"
+echo "***********************************"
 echo ""
 
 # update pacman + show status
 echo -n "[1/2] PACMAN UPDATE "
-if sudo pacman -Syu --noconfirm > /dev/null 2>&1; then
-	echo -e "${GREEN}[SUCCESS]${NC}"
-else 
-	echo -e "${RED}[FAILED]{NC}"
+if sudo pacman -Syu --noconfirm > "$PACMAN_LOG" 2>&1; then
+    echo -e "${GREEN}[SUCCESS]${NC}"
+else
+    FAILED=1
+    echo -e "${RED}[FAILED]${NC}"
 fi
 
 # update aur + show status
 echo -n "[2/2] AUR UPDATE    "
-if paru -Syu --noconfirm > /dev/null 2>&1; then
-	echo -e "${GREEN}[SUCCESS]${NC}"
+if paru -Syu --noconfirm > "$AUR_LOG" 2>&1; then
+    echo -e "${GREEN}[SUCCESS]${NC}"
 else
-	echo -e "${RED}[FAILED]${NC}"
+    FAILED=1
+    echo -e "${RED}[FAILED]${NC}"
 fi
 
-# show disk space
-echo ""
-duf /
 echo ""
 
-# create failure file if anything failed
+# create failure log if anything failed
 if (( FAILED )); then
-    touch /tmp/updates.log
-    echo -e "${RED}One or more updates failed. /tmp/updates created.${NC}"
+    {
+        echo "==================================="
+        echo "ARCHLINUX UPDATE FAILURE LOG"
+        echo "Date: $(date)"
+        echo "==================================="
+        echo ""
+
+        if [[ -s "$PACMAN_LOG" ]]; then
+            echo "===== PACMAN OUTPUT ====="
+            cat "$PACMAN_LOG"
+            echo ""
+        fi
+
+        if [[ -s "$AUR_LOG" ]]; then
+            echo "===== AUR OUTPUT ====="
+            cat "$AUR_LOG"
+            echo ""
+        fi
+    } > /tmp/failed_updates.log
+
+    echo -e "${RED}One or more updates failed. See /tmp/failed_updates.log${NC}"
 else
-    echo -e "${GREEN}All updates completed successfully.${NC}"
-    rm -f /tmp/updates.log
+    rm -f /tmp/failed_updates.log
 fi
+
+# cleanup temporary files
+rm -f "$PACMAN_LOG" "$AUR_LOG"
