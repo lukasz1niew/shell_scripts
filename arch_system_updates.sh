@@ -1,70 +1,69 @@
 #!/usr/bin/env bash
 
-# colours
+# Colours
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# track failures
+# Track failures
 FAILED=0
 
-# temporary output logs
-PACMAN_LOG=$(mktemp)
-AUR_LOG=$(mktemp)
+# Log file
+LOG_FILE="/tmp/updates.log"
 
-# system update header
+# Temporary output
+TEMP_LOG=$(mktemp)
+trap 'rm -f "$TEMP_LOG"' EXIT
+
 echo ""
 echo "***********************************"
-echo "***   ARCHLINUX SYSTEM UPDATE   ***"
+echo "***   ARCH LINUX SYSTEM UPDATE  ***"
 echo "***********************************"
 echo ""
 
-# update pacman + show status
+# Function to run and log failed updates
+run_update() {
+    local NAME="$1"
+    shift
+
+    : > "$TEMP_LOG"
+
+    "$@" > "$TEMP_LOG" 2>&1
+    local STATUS=$?
+
+    if (( STATUS == 0 )); then
+        echo -e "${GREEN}[SUCCESS]${NC}"
+    else
+        FAILED=1
+        echo -e "${RED}[FAILED]${NC}"
+
+        {
+            echo "==================================="
+            echo "$NAME UPDATE FAILED"
+            echo "Date: $(date)"
+            echo "Exit code: $STATUS"
+            echo "==================================="
+            cat "$TEMP_LOG"
+            echo ""
+        } >> "$LOG_FILE"
+    fi
+}
+
+# Pacman update
 echo -n "[1/2] PACMAN UPDATE "
-if sudo pacman -Syu --noconfirm > "$PACMAN_LOG" 2>&1; then
-    echo -e "${GREEN}[SUCCESS]${NC}"
-else
-    FAILED=1
-    echo -e "${RED}[FAILED]${NC}"
-fi
+run_update "PACMAN" sudo pacman -Syu --noconfirm
 
-# update aur + show status
+# AUR update
 echo -n "[2/2] AUR UPDATE    "
-if paru -Syu --noconfirm > "$AUR_LOG" 2>&1; then
-    echo -e "${GREEN}[SUCCESS]${NC}"
-else
-    FAILED=1
-    echo -e "${RED}[FAILED]${NC}"
-fi
+run_update "AUR" paru -Syu --noconfirm
 
 echo ""
 
-# create failure log if anything failed
+# Final status
 if (( FAILED )); then
-    {
-        echo "==================================="
-        echo "ARCHLINUX UPDATE FAILURE LOG"
-        echo "Date: $(date)"
-        echo "==================================="
-        echo ""
-
-        if [[ -s "$PACMAN_LOG" ]]; then
-            echo "===== PACMAN OUTPUT ====="
-            cat "$PACMAN_LOG"
-            echo ""
-        fi
-
-        if [[ -s "$AUR_LOG" ]]; then
-            echo "===== AUR OUTPUT ====="
-            cat "$AUR_LOG"
-            echo ""
-        fi
-    } > /tmp/failed_updates.log
-
-    echo -e "${RED}One or more updates failed. See /tmp/failed_updates.log${NC}"
+    echo "Updates failed, check $LOG_FILE"
+    exit 1
 else
-    rm -f /tmp/failed_updates.log
+    # Remove old log if all updates succeed
+    rm -f "$LOG_FILE"
 fi
-
-# cleanup temporary files
-rm -f "$PACMAN_LOG" "$AUR_LOG"
