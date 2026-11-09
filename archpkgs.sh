@@ -15,6 +15,7 @@ packages=(
 	# hyprland
 		waybar
 		hyprshot
+		hyprlock
 
 	# audio
 		pavucontrol
