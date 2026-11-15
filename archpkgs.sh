@@ -5,6 +5,7 @@ packages=(
 		eza
 		btop
 		bat
+		dnsutils
 		fzf
 		fish
 		neovim
