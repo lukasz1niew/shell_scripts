@@ -6,6 +6,7 @@ packages=(
 		btop
 		bat
 		fzf
+		fish
 		neovim
 		neofetch
 		starship
@@ -30,17 +31,12 @@ packages=(
 		swaync
 		nwg-look
 		awww
-		caelestia-sddm-git
+		caelestia-sddm-locklike-git
 		catppuccin-gtk-theme-mocha
 
 	# proton
 		proton-vpn-gtk-app
 		proton-pass-bin
-
-  # zsh
-		zsh
-		zsh-autosuggestions 
-		zsh-completions
 	)
 
 for package in ${packages[@]}; do
