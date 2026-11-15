@@ -18,7 +18,8 @@ packages=(
 		waybar
 		hyprshot
 		hyprlock
-		hyprlidle
+		hypridle
+		hyprpicker
 
 	# audio
 		pavucontrol
